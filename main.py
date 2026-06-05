@@ -1,6 +1,7 @@
 import os
 import discord
 from discord.ext import commands
+import g4f
 from g4f.client import AsyncClient
 
 # 1. Set up Discord intents so the bot can read messages
@@ -10,8 +11,10 @@ intents.message_content = True
 # 2. Initialize the bot with the command prefix '!'
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 3. Initialize the g4f asynchronous client for free AI responses
-g4f_client = AsyncClient()
+# 3. Force g4f to use a reliable provider that doesn't need an API key
+g4f_client = AsyncClient(
+    provider=g4f.Provider.DuckDuckGo
+)
 
 @bot.event
 async def on_ready():
@@ -29,9 +32,9 @@ async def chat(ctx, *, prompt: str = None):
     # Trigger Discord's typing indicator while waiting for the AI
     async with ctx.typing():
         try:
-            # Request response from the g4f library asynchronously
+            # Request response from the specific provider
             response = await g4f_client.chat.completions.create(
-                model="gpt-3.5-turbo", # You can also test 'gpt-4' or 'gpt-4o'
+                model="gpt-4o-mini", 
                 messages=[{"role": "user", "content": prompt}],
                 web_search=False
             )
@@ -39,8 +42,7 @@ async def chat(ctx, *, prompt: str = None):
             # Extract the AI's string reply
             reply = response.choices[0].message.content
             
-            # Discord limits a single message to 2000 characters. 
-            # This logic safely splits long AI responses into multiple messages.
+            # Discord limits a single message to 2000 characters
             if len(reply) > 2000:
                 for chunk in [reply[i:i+2000] for i in range(0, len(reply), 2000)]:
                     await ctx.send(chunk)
