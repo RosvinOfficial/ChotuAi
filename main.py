@@ -11,9 +11,9 @@ intents.message_content = True
 # 2. Initialize the bot with the command prefix '!'
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 3. Force g4f to use a reliable provider that doesn't need an API key
+# 3. Force g4f to use Blackbox (highly stable provider without API key requirements)
 g4f_client = AsyncClient(
-    provider=g4f.Provider.DuckDuckGo
+    provider=g4f.Provider.Blackbox
 )
 
 @bot.event
@@ -34,7 +34,7 @@ async def chat(ctx, *, prompt: str = None):
         try:
             # Request response from the specific provider
             response = await g4f_client.chat.completions.create(
-                model="gpt-4o-mini", 
+                model="gpt-3.5-turbo", 
                 messages=[{"role": "user", "content": prompt}],
                 web_search=False
             )
