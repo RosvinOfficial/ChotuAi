@@ -11,10 +11,8 @@ intents.message_content = True
 # 2. Initialize the bot with the command prefix '!'
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# 3. Force g4f to use Blackbox (highly stable provider without API key requirements)
-g4f_client = AsyncClient(
-    provider=g4f.Provider.Blackbox
-)
+# 3. Use default AsyncClient (No hardcoded providers to prevent AttributeErrors!)
+g4f_client = AsyncClient()
 
 @bot.event
 async def on_ready():
@@ -32,7 +30,7 @@ async def chat(ctx, *, prompt: str = None):
     # Trigger Discord's typing indicator while waiting for the AI
     async with ctx.typing():
         try:
-            # Request response from the specific provider
+            # By specifically requesting 'gpt-3.5-turbo', g4f's auto-router avoids API-locked providers
             response = await g4f_client.chat.completions.create(
                 model="gpt-3.5-turbo", 
                 messages=[{"role": "user", "content": prompt}],
@@ -50,7 +48,7 @@ async def chat(ctx, *, prompt: str = None):
                 await ctx.send(reply)
                 
         except Exception as e:
-            await ctx.send(f"An error occurred while connecting to the free AI: {e}")
+            await ctx.send(f"An error occurred: {e}\n*Tip: Try your prompt again in a moment!*")
 
 # 4. Run the bot using the secret environment variable from Railway
 bot.run(os.environ['DISCORD_BOT_TOKEN'])
