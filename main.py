@@ -1,27 +1,29 @@
+import os
 import discord
 from discord.ext import commands
 from g4f.client import AsyncClient
 
-# Set up Discord bot intents
+# 1. Set up Discord intents so the bot can read messages
 intents = discord.Intents.default()
 intents.message_content = True
 
-# Initialize the bot with the command prefix '!'
+# 2. Initialize the bot with the command prefix '!'
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# Initialize the g4f asynchronous client
+# 3. Initialize the g4f asynchronous client for free AI responses
 g4f_client = AsyncClient()
 
 @bot.event
 async def on_ready():
     print(f'Logged in successfully as {bot.user} (ID: {bot.user.id})')
     print('------')
+    print('Bot is online and ready 24/7!')
 
 @bot.command(name="chat", help="Chat with the free AI")
 async def chat(ctx, *, prompt: str = None):
     # Ensure the user provided a message
     if not prompt:
-        await ctx.send("Please provide a prompt! Example: `!chat Write a short story about a robot.`")
+        await ctx.send("Please provide a prompt! Example: `!chat Tell me a joke.`")
         return
 
     # Trigger Discord's typing indicator while waiting for the AI
@@ -29,7 +31,7 @@ async def chat(ctx, *, prompt: str = None):
         try:
             # Request response from the g4f library asynchronously
             response = await g4f_client.chat.completions.create(
-                model="gpt-3.5-turbo", # You can also test 'gpt-4o' or 'gpt-4o-mini'
+                model="gpt-3.5-turbo", # You can also test 'gpt-4' or 'gpt-4o'
                 messages=[{"role": "user", "content": prompt}],
                 web_search=False
             )
@@ -37,8 +39,8 @@ async def chat(ctx, *, prompt: str = None):
             # Extract the AI's string reply
             reply = response.choices[0].message.content
             
-            # Discord limits a single message to 2000 characters
-            # This logic splits the reply into chunks if the AI generates a long response
+            # Discord limits a single message to 2000 characters. 
+            # This logic safely splits long AI responses into multiple messages.
             if len(reply) > 2000:
                 for chunk in [reply[i:i+2000] for i in range(0, len(reply), 2000)]:
                     await ctx.send(chunk)
@@ -46,7 +48,7 @@ async def chat(ctx, *, prompt: str = None):
                 await ctx.send(reply)
                 
         except Exception as e:
-            await ctx.send(f"An error occurred while connecting to the free AI provider: {e}")
+            await ctx.send(f"An error occurred while connecting to the free AI: {e}")
 
-# Replace with your actual Discord Bot Token
-bot.run('YOUR_DISCORD_BOT_TOKEN_HERE')
+# 4. Run the bot using the secret environment variable from Railway
+bot.run(os.environ['DISCORD_BOT_TOKEN'])
