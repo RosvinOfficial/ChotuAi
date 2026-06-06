@@ -122,7 +122,6 @@ def ask_gemini(prompt):
     if hasattr(response, "text"):
         return response.text
     return "No response generated."
-
 # =====================================
 # RANDOM ADVERTISEMENT TASK
 # =====================================
@@ -131,17 +130,21 @@ async def random_ad_task():
     if not ADS_LIST:
         return 
 
+    # 1. Random time wait karna
     wait_time = random.randint(600, 2700)
     await asyncio.sleep(wait_time)
 
+    # 2. List mein se ek random ad uthana
     ad_message = random.choice(ADS_LIST)
 
+    # 3. Ek random server uthana
     if not bot.guilds:
         return
         
     random_guild = random.choice(bot.guilds)
     channel = None
     
+    # PRIORITY 1: Database mein set kiya hua announcement channel dhoondhna
     try:
         from database import get_announcement_channel
         channel_id = get_announcement_channel(random_guild.id)
@@ -150,19 +153,31 @@ async def random_ad_task():
     except ImportError:
         pass
 
+    # PRIORITY 2: Agar DB mein koi channel nahi hai, toh "general" channel dhoondhna
+    if not channel:
+        for c in random_guild.text_channels:
+            # Check karta hai ki channel ka naam 'general' ho aur bot ke paas message bhejne ki permission ho
+            if c.name.lower() == "general" and c.permissions_for(random_guild.me).send_messages:
+                channel = c
+                break
+
+    # PRIORITY 3: Agar "general" bhi nahi mila, toh server ke system channel mein bhejna
     if not channel and random_guild.system_channel:
-        channel = random_guild.system_channel
+        if random_guild.system_channel.permissions_for(random_guild.me).send_messages:
+            channel = random_guild.system_channel
         
+    # PRIORITY 4: Agar upar ka kuch bhi nahi mila, toh kisi bhi aise channel mein bhej do jahan permission ho
     if not channel:
         for c in random_guild.text_channels:
             if c.permissions_for(random_guild.me).send_messages:
                 channel = c
                 break
 
+    # 4. Message send karna
     if channel:
         try:
             await channel.send(f"📢 **Sponsored Advertisement** 📢\n\n{ad_message}")
-            print(f"Ad sent to random server: {random_guild.name}")
+            print(f"Ad sent to #{channel.name} in server: {random_guild.name}")
         except Exception as e:
             print(f"Ad bhejne mein error aayi: {e}")
 
