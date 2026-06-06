@@ -35,43 +35,54 @@ if not GEMINI_API_KEY:
 
 # 👇 YAHAN AAP APNE ADS DALENGE 👇
 ADS_LIST = [
-    "🌟 JOIN PRIME X SYNCATE! 🌟
+    """╔═══════════════════════════════════════╗
+║               🌟 𝗘𝗡𝗧𝗘𝗥 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘! 🌟
+╚═══════════════════════════════════════╝
 
-🔍 Looking for a gaming server that's fun, active, and packed with events?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🏆 PRIME X SYNCATE IS THE PLACE TO BE! 🏆
+🔍 **Looking for a gaming server that's fun, active, and full of events?**
 
-🎮 Games We Play
-• Minecraft (Java + PE Crossplay)
-• Roblox
-• GTA
-• BGMI
-• Free Fire
-• Fortnite
-• Call of Duty
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-⚡ Server Features
-• Land Claim System
-• Grave System
-• Daily Events
-• Exciting Giveaways
-• Special Roles & Rewards
+🏆 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘 𝗜𝗦 𝗧𝗛𝗘 𝗣𝗟𝗔𝗖𝗘 𝗧𝗢 𝗕𝗘! 🏆
 
-🎉 Why Join Prime X Syncate?
-✅ Friendly & Active Community
-✅ Regular Events & Giveaways
-✅ Self-Roles & Active Staff Team
-✅ Non-Toxic Environment
-✅ Gaming, Fun & New Friends
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🚀 Ready to Join the Adventure?
-Become part of an amazing gaming community and enjoy endless fun with players from around the world!
-🔗 JOIN NOW
+🎮 **Minecraft | Roblox | GTA | BGMI | Free Fire | Fortnite | COD**
+
+   → Java + PE Crossplay | Land Claim | Grave System
+   → Daily Events | Giveaways | Special Roles
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 **𝗪𝗛𝗬 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘?**
+
+✅ Friendly and active community
+✅ Regular events & giveaways
+✅ Self-roles & active staff
+✅ No toxicity — just pure gaming fun
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ **𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗝𝗼𝗶𝗻?**
+
+Don't miss out — jump in now and be part of the adventure!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👉 𝗝𝗢𝗜𝗡 𝗡𝗢𝗪  👈
+
 https://discord.gg/TPzgS8g9xr
 
-🔥 Prime X Syncate — Where Gamers Unite! 🔥"
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━""",
+    
+    
+   
 ]
 # 👆 YAHAN AAP APNE ADS DALENGE 👆
+
 
 # =====================================
 # DATABASE INIT
