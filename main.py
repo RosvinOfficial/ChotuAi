@@ -1,106 +1,216 @@
 import os
-import asyncio
+import sqlite3
 import discord
 from discord.ext import commands
+from discord import app_commands
 from google import genai
+
+=========================
+
+CONFIG
+
+=========================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 if not DISCORD_TOKEN:
-    raise ValueError("DISCORD_TOKEN is missing")
+raise ValueError("DISCORD_TOKEN is missing")
 
 if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is missing")
+raise ValueError("GEMINI_API_KEY is missing")
 
-client = genai.Client(api_key=GEMINI_API_KEY)
+=========================
+
+GEMINI
+
+=========================
+
+client = genai.Client(
+api_key=GEMINI_API_KEY
+)
+
+=========================
+
+DATABASE
+
+=========================
+
+conn = sqlite3.connect("bot.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS memory(
+id INTEGER PRIMARY KEY AUTOINCREMENT,
+user_id TEXT,
+message TEXT
+)
+""")
+
+conn.commit()
+
+=========================
+
+DISCORD
+
+=========================
 
 intents = discord.Intents.default()
 intents.message_content = True
+intents.guilds = True
 
 bot = commands.Bot(
-    command_prefix="!",
-    intents=intents,
-    help_command=None
+command_prefix="!",
+intents=intents
 )
 
-SYSTEM_PROMPT = """
-You are PRIMEXSYNDIC AI.
-Be helpful, friendly and concise.
-"""
+=========================
 
-def ask_gemini(prompt: str) -> str:
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=f"{SYSTEM_PROMPT}\n\nUser: {prompt}"
-    )
+GEMINI FUNCTION
 
-    if hasattr(response, "text") and response.text:
-        return response.text
+=========================
 
-    return "I couldn't generate a response."
+def ask_gemini(prompt):
+
+response = client.models.generate_content(
+    model="gemini-2.5-flash",
+    contents=prompt
+)
+
+if hasattr(response, "text"):
+    return response.text
+
+return "No response generated."
+
+=========================
+
+EVENTS
+
+=========================
 
 @bot.event
 async def on_ready():
+
+try:
+    synced = await bot.tree.sync()
+
+    print("=" * 50)
     print(f"Logged in as {bot.user}")
-    await bot.change_presence(
-        activity=discord.Game("PRIMEXSYNDIC AI")
+    print(f"Servers: {len(bot.guilds)}")
+    print(f"Commands Synced: {len(synced)}")
+    print("=" * 50)
+
+except Exception as e:
+    print(e)
+
+=========================
+
+PING COMMAND
+
+=========================
+
+@bot.tree.command(
+name="ping",
+description="Check bot latency"
+)
+async def ping(interaction: discord.Interaction):
+
+await interaction.response.send_message(
+    f"Pong! {round(bot.latency * 1000)}ms"
+)
+
+=========================
+
+ASK COMMAND
+
+=========================
+
+@bot.tree.command(
+name="ask",
+description="Ask AI anything"
+)
+@app_commands.describe(
+question="Your question"
+)
+async def ask(
+interaction: discord.Interaction,
+question: str
+):
+
+await interaction.response.defer()
+
+try:
+
+    answer = ask_gemini(question)
+
+    if len(answer) > 1900:
+        answer = answer[:1900]
+
+    cursor.execute(
+        "INSERT INTO memory(user_id, message) VALUES(?, ?)",
+        (
+            str(interaction.user.id),
+            question
+        )
     )
 
-@bot.command()
-async def ping(ctx):
-    await ctx.send(f"Pong! {round(bot.latency * 1000)}ms")
+    conn.commit()
 
-@bot.command()
-async def ai(ctx, *, prompt):
-    async with ctx.typing():
+    await interaction.followup.send(answer)
+
+except Exception as e:
+
+    await interaction.followup.send(
+        f"Error: {str(e)}"
+    )
+
+=========================
+
+MENTION CHAT
+
+=========================
+
+@bot.event
+async def on_message(message):
+
+if message.author.bot:
+    return
+
+if bot.user in message.mentions:
+
+    prompt = (
+        message.content
+        .replace(f"<@{bot.user.id}>", "")
+        .replace(f"<@!{bot.user.id}>", "")
+        .strip()
+    )
+
+    if not prompt:
+        return
+
+    async with message.channel.typing():
+
         try:
-            response = await asyncio.to_thread(
-                ask_gemini,
-                prompt
-            )
+
+            response = ask_gemini(prompt)
 
             if len(response) > 1900:
                 response = response[:1900]
 
-            await ctx.reply(response)
+            await message.reply(response)
 
-        except Exception as e:
-            await ctx.reply(
-                f"Error: {str(e)[:300]}"
+        except Exception:
+
+            await message.reply(
+                "AI service unavailable."
             )
 
-@bot.event
-async def on_message(message):
-    if message.author.bot:
-        return
+await bot.process_commands(message)
 
-    if bot.user in message.mentions:
-        prompt = (
-            message.content
-            .replace(f"<@{bot.user.id}>", "")
-            .replace(f"<@!{bot.user.id}>", "")
-            .strip()
-        )
+=========================
 
-        if prompt:
-            async with message.channel.typing():
-                try:
-                    response = await asyncio.to_thread(
-                        ask_gemini,
-                        prompt
-                    )
+START BOT
 
-                    if len(response) > 1900:
-                        response = response[:1900]
-
-                    await message.reply(response)
-
-                except Exception:
-                    await message.reply(
-                        "AI service unavailable."
-                    )
-
-    await bot.process_commands(message)
+=========================
 
 bot.run(DISCORD_TOKEN)
