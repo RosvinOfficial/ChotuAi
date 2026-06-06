@@ -1,8 +1,10 @@
 import os
 import qrcode
 import discord
+import random
+import asyncio
 from io import BytesIO
-from discord.ext import commands
+from discord.ext import commands, tasks
 from discord import app_commands
 from google import genai
 
@@ -15,7 +17,7 @@ from database import (
 )
 
 # =====================================
-# CONFIG
+# CONFIG & ADVERTISEMENTS
 # =====================================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -30,6 +32,53 @@ if not DISCORD_TOKEN:
 
 if not GEMINI_API_KEY:
     raise ValueError("GEMINI_API_KEY is missing. Make sure it is set in your environment variables.")
+
+# 👇 YAHAN AAP APNE ADS DALENGE 👇
+ADS_LIST = [
+    "╔═══════════════════════════════════════╗
+║               🌟 𝗘𝗡𝗧𝗘𝗥 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘! 🌟
+╚═══════════════════════════════════════╝
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🔍 **Looking for a gaming server that's fun, active, and full of events?**
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🏆 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘 𝗜𝗦 𝗧𝗛𝗘 𝗣𝗟𝗔𝗖𝗘 𝗧𝗢 𝗕𝗘! 🏆
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎮 **Minecraft | Roblox | GTA | BGMI | Free Fire | Fortnite | COD**
+
+   → Java + PE Crossplay | Land Claim | Grave System
+   → Daily Events | Giveaways | Special Roles
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 **𝗪𝗛𝗬 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘?**
+
+✅ Friendly and active community
+✅ Regular events & giveaways
+✅ Self-roles & active staff
+✅ No toxicity — just pure gaming fun
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ **𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗝𝗼𝗶𝗻?**
+
+Don't miss out — jump in now and be part of the adventure!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+👉 𝗝𝗢𝗜𝗡 𝗡𝗢𝗪  👈
+
+https://discord.gg/TPzgS8g9xr
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+]
+# 👆 YAHAN AAP APNE ADS DALENGE 👆
 
 # =====================================
 # DATABASE INIT
@@ -65,6 +114,55 @@ def ask_gemini(prompt):
     return "No response generated."
 
 # =====================================
+# RANDOM ADVERTISEMENT TASK
+# =====================================
+@tasks.loop(hours=1) # Har 1 ghante mein trigger hoga
+async def random_ad_task():
+    if not ADS_LIST:
+        return 
+
+    # 1. Random time wait karna (10 se 45 minute ke beech)
+    wait_time = random.randint(600, 2700)
+    await asyncio.sleep(wait_time)
+
+    # 2. List mein se ek random ad uthana
+    ad_message = random.choice(ADS_LIST)
+
+    # 3. Ek random server uthana jisme bot juda hua hai
+    if not bot.guilds:
+        return
+        
+    random_guild = random.choice(bot.guilds)
+
+    # 4. Us server mein message bhejne ke liye channel dhoondhna
+    channel = None
+    
+    try:
+        from database import get_announcement_channel
+        channel_id = get_announcement_channel(random_guild.id)
+        if channel_id:
+            channel = bot.get_channel(int(channel_id))
+    except ImportError:
+        pass
+
+    if not channel and random_guild.system_channel:
+        channel = random_guild.system_channel
+        
+    if not channel:
+        for c in random_guild.text_channels:
+            if c.permissions_for(random_guild.me).send_messages:
+                channel = c
+                break
+
+    # 5. Message send karna
+    if channel:
+        try:
+            await channel.send(f"📢 **Sponsored Advertisement** 📢\n\n{ad_message}")
+            print(f"Ad sent to random server: {random_guild.name}")
+        except Exception as e:
+            print(f"Ad bhejne mein error aayi: {e}")
+
+# =====================================
 # EVENTS
 # =====================================
 @bot.event
@@ -77,6 +175,12 @@ async def on_ready():
         print(f"Servers: {len(bot.guilds)}")  
         print(f"Commands Synced: {len(synced)}")  
         print("=" * 50)
+
+        # Start the background ad task
+        if not random_ad_task.is_running():
+            random_ad_task.start()
+            print("Random Ad Task Started.")
+
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
@@ -95,7 +199,6 @@ async def ping(interaction: discord.Interaction):
 @bot.tree.command(name="ask", description="Ask AI anything")
 @app_commands.describe(question="Your question")
 async def ask(interaction: discord.Interaction, question: str):
-    # Defer the response since AI generation might take longer than 3 seconds
     await interaction.response.defer()
 
     try:
@@ -107,7 +210,6 @@ async def ask(interaction: discord.Interaction, question: str):
             question  
         )  
         
-        # Discord has a 2000 character limit per message
         if len(answer) > 1900:  
             answer = answer[:1900] + "... [Truncated]"
             
@@ -163,7 +265,6 @@ async def advertisement(interaction: discord.Interaction, link: str):
         f"&tn={link}"
     )
 
-    # Generate QR Code
     qr = qrcode.make(upi_uri)
     buffer = BytesIO()
     qr.save(buffer, format="PNG")
@@ -171,7 +272,6 @@ async def advertisement(interaction: discord.Interaction, link: str):
     
     file = discord.File(buffer, filename="payment_qr.png")
 
-    # Create Embed
     embed = discord.Embed(
         title="Advertisement Request",
         color=discord.Color.green()
@@ -195,11 +295,9 @@ async def advertisement(interaction: discord.Interaction, link: str):
 # =====================================
 @bot.event
 async def on_message(message):
-    # Ignore messages from the bot itself
     if message.author.bot:
         return
 
-    # Check if the bot was mentioned
     if bot.user in message.mentions:
         prompt = (  
             message.content  
@@ -226,7 +324,6 @@ async def on_message(message):
             except Exception as e:  
                 await message.reply(f"AI Error: {str(e)}")
 
-    # Ensure other commands still process correctly
     await bot.process_commands(message)
 
 # =====================================
