@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 import google.generativeai as genai
 
-DISCORD_TOKEN = "YOUR_DISCORD_TOKEN"
+DISCORD_TOKEN = "DISCORD_TOKEN"
 
 GEMINI_KEYS = [
     "GEMINI_KEY_1",
