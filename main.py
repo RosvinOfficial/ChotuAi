@@ -1,71 +1,79 @@
+import os
 import discord
-from discord.ext import commands
-import google.generativeai as genai
+from dotenv import load_dotenv
+from google import genai
 
-DISCORD_TOKEN = "DISCORD_TOKEN"
+load_dotenv()
 
-GEMINI_KEYS = [
-    "GEMINI_KEY_1",
-    "GEMINI_KEY_2",
-    "GEMINI_KEY_3"
-]
+DISCORD_TOKEN = os.getenv("DISCORD_TOKEN", "").strip()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
+if not DISCORD_TOKEN:
+raise ValueError("DISCORD_TOKEN is missing.")
+
+if not GEMINI_API_KEY:
+raise ValueError("GEMINI_API_KEY is missing.")
+
+client = genai.Client(api_key=GEMINI_API_KEY)
 
 intents = discord.Intents.default()
 intents.message_content = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = discord.Client(intents=intents)
 
+async def ask_gemini(prompt: str) -> str:
+try:
+response = client.models.generate_content(
+model="gemini-2.5-flash",
+contents=prompt
+)
 
-def generate_response(prompt):
-    last_error = None
+    if hasattr(response, "text") and response.text:
+        return response.text
 
-    for key in GEMINI_KEYS:
-        try:
-            genai.configure(api_key=key)
-
-            model = genai.GenerativeModel("gemini-2.5-flash")
-
-            response = model.generate_content(prompt)
-
-            return response.text
-
-        except Exception as e:
-            last_error = e
-            continue
-
-    raise Exception(f"All configured providers failed: {last_error}")
-
+    return "I couldn't generate a response."
+except Exception as e:
+    return f"Error: {str(e)}"
 
 @bot.event
 async def on_ready():
-    print(f"Logged in as {bot.user}")
-
+print(f"Logged in as {bot.user}")
+print("Bot is online.")
 
 @bot.event
 async def on_message(message):
-    if message.author.bot:
-        return
+if message.author.bot:
+return
 
-    if bot.user in message.mentions:
-        try:
-            prompt = message.content.replace(
-                f"<@{bot.user.id}>", ""
-            ).strip()
+should_reply = (
+    bot.user in message.mentions
+    or message.content.lower().startswith("!ai ")
+)
 
-            if not prompt:
-                return
+if not should_reply:
+    return
 
-            async with message.channel.typing():
-                answer = generate_response(prompt)
+prompt = message.content
 
-            await message.reply(answer[:2000])
+if bot.user in message.mentions:
+    prompt = prompt.replace(f"<@{bot.user.id}>", "")
+    prompt = prompt.replace(f"<@!{bot.user.id}>", "")
 
-        except Exception:
-            await message.reply(
-                "AI service is currently unavailable."
-            )
+if prompt.lower().startswith("!ai "):
+    prompt = prompt[4:]
 
-    await bot.process_commands(message)
+prompt = prompt.strip()
 
+if not prompt:
+    await message.reply("Please provide a message.")
+    return
+
+async with message.channel.typing():
+    answer = await ask_gemini(prompt)
+
+if len(answer) > 1900:
+    answer = answer[:1900]
+
+await message.reply(answer)
 
 bot.run(DISCORD_TOKEN)
