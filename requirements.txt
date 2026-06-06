@@ -1,3 +1,4 @@
-discord.py==2.3.2
-g4f
-audioop-lts
+discord.py>=2.4.0
+google-generativeai>=0.8.5
+python-dotenv>=1.0.1
+aiohttp>=3.9.5
