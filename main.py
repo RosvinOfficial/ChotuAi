@@ -3,6 +3,7 @@ import qrcode
 import discord
 import random
 import asyncio
+import urllib.parse
 from io import BytesIO
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -21,10 +22,27 @@ from database import (
 # =====================================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-# Key 1: For text generation
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
-# Key 2: For image generation
-GEMINI_IMAGE_API_KEY = os.getenv("GEMINI_IMAGE_API_KEY") 
+
+# Yahan hum saari keys fetch kar rahe hain
+GEMINI_KEYS = [
+    os.getenv("GEMINI_API_KEY"),
+    os.getenv("GEMINI_API_KEY_2"),
+    os.getenv("GEMINI_API_KEY_3"),
+    os.getenv("GEMINI_API_KEY_4"),
+    os.getenv("GEMINI_API_KEY_5"),
+    os.getenv("GEMINI_API_KEY_6"),
+    os.getenv("GEMINI_API_KEY_7"),
+    os.getenv("GEMINI_API_KEY_8"),
+    os.getenv("GEMINI_API_KEY_9"),
+    os.getenv("GEMINI_API_KEY_10"),
+    os.getenv("GEMINI_API_KEY_11"),
+    os.getenv("GEMINI_API_KEY_12"),
+    os.getenv("GEMINI_API_KEY_13"),
+    os.getenv("GEMINI_API_KEY_14"),
+]
+
+# Un keys ko hata do jo empty hain (agar aapne sirf 2 keys daali hain toh teesri ignore ho jayegi)
+VALID_KEYS = [key for key in GEMINI_KEYS if key]
 
 UPI_ID = "talentroze@upi"
 UPI_NAME = "Talentroze"
@@ -33,8 +51,8 @@ AD_PRICE = 399
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is missing. Make sure it is set in your environment variables.")
 
-if not GEMINI_API_KEY:
-    raise ValueError("GEMINI_API_KEY is missing. Make sure it is set in your environment variables.")
+if not VALID_KEYS:
+    raise ValueError("No GEMINI_API_KEY found. Please add at least one key to your environment variables.")
 
 # 👇 YAHAN AAP APNE ADS DALENGE 👇
 ADS_LIST = [
@@ -88,17 +106,10 @@ https://discord.gg/TPzgS8g9xr
 initialize_database()
 
 # =====================================
-# GEMINI CLIENTS
+# GEMINI CLIENTS (API ROTATION SETUP)
 # =====================================
-# Client for answering questions
-client = genai.Client(api_key=GEMINI_API_KEY)
-
-# Client for generating images (Only starts if the second key is provided)
-if GEMINI_IMAGE_API_KEY:
-    image_client = genai.Client(api_key=GEMINI_IMAGE_API_KEY)
-else:
-    image_client = None
-    print("WARNING: GEMINI_IMAGE_API_KEY is missing. Image generation will be disabled.")
+# Har valid API key ke liye ek alag client banakar list mein save kar lenge
+gemini_clients = [genai.Client(api_key=key) for key in VALID_KEYS]
 
 # =====================================
 # DISCORD BOT SETUP
@@ -112,16 +123,31 @@ bot = commands.Bot(
 )
 
 # =====================================
-# AI FUNCTION (TEXT)
+# AI FUNCTION (AUTO-SWITCHING API)
 # =====================================
 def ask_gemini(prompt):
-    response = client.models.generate_content(
-        model="gemini-2.5-flash",
-        contents=prompt
-    )
-    if hasattr(response, "text"):
-        return response.text
-    return "No response generated."
+    last_error = None
+    
+    # Ye loop ek ek karke clients (API keys) ko try karega
+    for i, client in enumerate(gemini_clients):
+        try:
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
+            if hasattr(response, "text"):
+                # Agar prompt ka answer mil gaya, toh sidha answer return kar do
+                return response.text
+                
+        except Exception as e:
+            # Agar error aayi (jaise limit cross ho gayi), toh terminal mein batayega aur agli key try karega
+            print(f"API Key {i + 1} failed: {e}. Switching to the next key...")
+            last_error = e
+            continue 
+
+    # Agar saari keys fail ho jayein tab hi ye error message aayega
+    return f"Sorry, all my AI brains are exhausted right now! (Limits reached). Last Error: {str(last_error)}"
+
 # =====================================
 # RANDOM ADVERTISEMENT TASK
 # =====================================
@@ -130,21 +156,17 @@ async def random_ad_task():
     if not ADS_LIST:
         return 
 
-    # 1. Random time wait karna
     wait_time = random.randint(600, 2700)
     await asyncio.sleep(wait_time)
 
-    # 2. List mein se ek random ad uthana
     ad_message = random.choice(ADS_LIST)
 
-    # 3. Ek random server uthana
     if not bot.guilds:
         return
         
     random_guild = random.choice(bot.guilds)
     channel = None
     
-    # PRIORITY 1: Database mein set kiya hua announcement channel dhoondhna
     try:
         from database import get_announcement_channel
         channel_id = get_announcement_channel(random_guild.id)
@@ -153,27 +175,22 @@ async def random_ad_task():
     except ImportError:
         pass
 
-    # PRIORITY 2: Agar DB mein koi channel nahi hai, toh "general" channel dhoondhna
     if not channel:
         for c in random_guild.text_channels:
-            # Check karta hai ki channel ka naam 'general' ho aur bot ke paas message bhejne ki permission ho
             if c.name.lower() == "general" and c.permissions_for(random_guild.me).send_messages:
                 channel = c
                 break
 
-    # PRIORITY 3: Agar "general" bhi nahi mila, toh server ke system channel mein bhejna
     if not channel and random_guild.system_channel:
         if random_guild.system_channel.permissions_for(random_guild.me).send_messages:
             channel = random_guild.system_channel
         
-    # PRIORITY 4: Agar upar ka kuch bhi nahi mila, toh kisi bhi aise channel mein bhej do jahan permission ho
     if not channel:
         for c in random_guild.text_channels:
             if c.permissions_for(random_guild.me).send_messages:
                 channel = c
                 break
 
-    # 4. Message send karna
     if channel:
         try:
             await channel.send(f"📢 **Sponsored Advertisement** 📢\n\n{ad_message}")
@@ -193,6 +210,7 @@ async def on_ready():
         print(f"Logged in as: {bot.user}")  
         print(f"Servers: {len(bot.guilds)}")  
         print(f"Commands Synced: {len(synced)}")  
+        print(f"Active API Keys: {len(VALID_KEYS)}") 
         print("=" * 50)
 
         if not random_ad_task.is_running():
@@ -235,47 +253,37 @@ async def ask(interaction: discord.Interaction, question: str):
 
     except Exception as e:
         await interaction.followup.send(f"Error: {str(e)}")
+
 # =====================================
 # /IMAGINE (UNLIMITED FREE IMAGE GENERATION)
 # =====================================
-import urllib.parse 
-
 @bot.tree.command(name="imagine", description="Generate an image using AI for free!")
 @app_commands.describe(prompt="What do you want Chotu Chaiwala to draw?")
 async def imagine(interaction: discord.Interaction, prompt: str):
     await interaction.response.defer()
 
     try:
-        # Convert the user's prompt into a format safe for web URLs
         encoded_prompt = urllib.parse.quote(prompt)
-        
-        # Add a random seed for variety
         seed = random.randint(1, 100000)
         image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
 
-        # Discord Embed Titles have a strict 256 character limit. 
-        # If the prompt is too long, we truncate it and add "..."
         safe_prompt = prompt if len(prompt) < 230 else prompt[:230] + "..."
 
-        # Create a beautiful embed to display the image
         embed = discord.Embed(
             title=f"🎨 Drawing for: {safe_prompt}",
             color=discord.Color.blue()
         )
         
-        # If the prompt was really long, we put the full text in the description so it's not lost
         if len(prompt) >= 230:
             embed.description = f"**Full Prompt:** {prompt}"
 
         embed.set_image(url=image_url)
         embed.set_footer(text="Generated by Chotu Chaiwala")
 
-        # Send it back to the Discord channel
         await interaction.followup.send(embed=embed)
 
     except Exception as e:
         await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
-
 
 # =====================================
 # /REMEMBER
@@ -367,6 +375,7 @@ async def on_message(message):
 
         if prompt:  
             try:  
+                # Now this automatically uses the smart rotating API!
                 response = ask_gemini(prompt)  
 
                 save_message(  
