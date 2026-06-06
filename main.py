@@ -35,48 +35,54 @@ if not GEMINI_API_KEY:
 
 # 👇 YAHAN AAP APNE ADS DALENGE 👇
 ADS_LIST = [
-    "╔═══════════════════════════════════════╗
-║               🌟 𝗘𝗡𝗧𝗘𝗥 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘! 🌟
-╚═══════════════════════════════════════╝
+    "🌟 JOIN PRIME X SYNCATE! 🌟
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-🔍 **Looking for a gaming server that's fun, active, and full of events?**
+🔍 Looking for a gaming server that's fun, active, and packed with events?
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🏆 PRIME X SYNCATE IS THE PLACE TO BE! 🏆
 
-🏆 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘 𝗜𝗦 𝗧𝗛𝗘 𝗣𝗟𝗔𝗖𝗘 𝗧𝗢 𝗕𝗘! 🏆
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎮 Games We Play
+• Minecraft (Java + PE Crossplay)
+• Roblox
+• GTA
+• BGMI
+• Free Fire
+• Fortnite
+• Call of Duty
 
-🎮 **Minecraft | Roblox | GTA | BGMI | Free Fire | Fortnite | COD**
+⚡ Server Features
+• Land Claim System
+• Grave System
+• Daily Events
+• Exciting Giveaways
+• Special Roles & Rewards
 
-   → Java + PE Crossplay | Land Claim | Grave System
-   → Daily Events | Giveaways | Special Roles
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎉 Why Join Prime X Syncate?
 
-🎉 **𝗪𝗛𝗬 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘?**
+✅ Friendly & Active Community
+✅ Regular Events & Giveaways
+✅ Self-Roles & Active Staff Team
+✅ Non-Toxic Environment
+✅ Gaming, Fun & New Friends
 
-✅ Friendly and active community
-✅ Regular events & giveaways
-✅ Self-roles & active staff
-✅ No toxicity — just pure gaming fun
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🚀 Ready to Join the Adventure?
 
-⚡ **𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗝𝗼𝗶𝗻?**
+Become part of an amazing gaming community and enjoy endless fun with players from around the world!
 
-Don't miss out — jump in now and be part of the adventure!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-👉 𝗝𝗢𝗜𝗡 𝗡𝗢𝗪  👈
-
+🔗 JOIN NOW
 https://discord.gg/TPzgS8g9xr
 
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+🔥 Prime X Syncate — Where Gamers Unite! 🔥"
 ]
 # 👆 YAHAN AAP APNE ADS DALENGE 👆
 
