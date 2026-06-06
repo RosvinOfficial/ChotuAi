@@ -36,11 +36,11 @@ if not GEMINI_API_KEY:
 # 👇 YAHAN AAP APNE ADS DALENGE 👇
 ADS_LIST = [
     "🌟 JOIN PRIME X SYNCATE! 🌟
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🔍 Looking for a gaming server that's fun, active, and packed with events?
 
 🏆 PRIME X SYNCATE IS THE PLACE TO BE! 🏆
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🎮 Games We Play
 • Minecraft (Java + PE Crossplay)
 • Roblox
@@ -49,25 +49,26 @@ ADS_LIST = [
 • Free Fire
 • Fortnite
 • Call of Duty
+
 ⚡ Server Features
 • Land Claim System
 • Grave System
 • Daily Events
 • Exciting Giveaways
 • Special Roles & Rewards
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🎉 Why Join Prime X Syncate?
 ✅ Friendly & Active Community
 ✅ Regular Events & Giveaways
 ✅ Self-Roles & Active Staff Team
 ✅ Non-Toxic Environment
 ✅ Gaming, Fun & New Friends
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🚀 Ready to Join the Adventure?
 Become part of an amazing gaming community and enjoy endless fun with players from around the world!
 🔗 JOIN NOW
 https://discord.gg/TPzgS8g9xr
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
 🔥 Prime X Syncate — Where Gamers Unite! 🔥"
 ]
 # 👆 YAHAN AAP APNE ADS DALENGE 👆
