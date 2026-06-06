@@ -21,7 +21,10 @@ from database import (
 # =====================================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# Key 1: For text generation
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY") 
+# Key 2: For image generation
+GEMINI_IMAGE_API_KEY = os.getenv("GEMINI_IMAGE_API_KEY") 
 
 UPI_ID = "talentroze@upi"
 UPI_NAME = "Talentroze"
@@ -75,14 +78,9 @@ Don't miss out — jump in now and be part of the adventure!
 
 https://discord.gg/TPzgS8g9xr
 
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━""",
-    
-    
-   
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
 ]
 # 👆 YAHAN AAP APNE ADS DALENGE 👆
-
 
 # =====================================
 # DATABASE INIT
@@ -90,9 +88,17 @@ https://discord.gg/TPzgS8g9xr
 initialize_database()
 
 # =====================================
-# GEMINI
+# GEMINI CLIENTS
 # =====================================
+# Client for answering questions
 client = genai.Client(api_key=GEMINI_API_KEY)
+
+# Client for generating images (Only starts if the second key is provided)
+if GEMINI_IMAGE_API_KEY:
+    image_client = genai.Client(api_key=GEMINI_IMAGE_API_KEY)
+else:
+    image_client = None
+    print("WARNING: GEMINI_IMAGE_API_KEY is missing. Image generation will be disabled.")
 
 # =====================================
 # DISCORD BOT SETUP
@@ -106,7 +112,7 @@ bot = commands.Bot(
 )
 
 # =====================================
-# AI FUNCTION
+# AI FUNCTION (TEXT)
 # =====================================
 def ask_gemini(prompt):
     response = client.models.generate_content(
@@ -120,25 +126,20 @@ def ask_gemini(prompt):
 # =====================================
 # RANDOM ADVERTISEMENT TASK
 # =====================================
-@tasks.loop(hours=1) # Har 1 ghante mein trigger hoga
+@tasks.loop(hours=1)
 async def random_ad_task():
     if not ADS_LIST:
         return 
 
-    # 1. Random time wait karna (10 se 45 minute ke beech)
     wait_time = random.randint(600, 2700)
     await asyncio.sleep(wait_time)
 
-    # 2. List mein se ek random ad uthana
     ad_message = random.choice(ADS_LIST)
 
-    # 3. Ek random server uthana jisme bot juda hua hai
     if not bot.guilds:
         return
         
     random_guild = random.choice(bot.guilds)
-
-    # 4. Us server mein message bhejne ke liye channel dhoondhna
     channel = None
     
     try:
@@ -158,7 +159,6 @@ async def random_ad_task():
                 channel = c
                 break
 
-    # 5. Message send karna
     if channel:
         try:
             await channel.send(f"📢 **Sponsored Advertisement** 📢\n\n{ad_message}")
@@ -180,7 +180,6 @@ async def on_ready():
         print(f"Commands Synced: {len(synced)}")  
         print("=" * 50)
 
-        # Start the background ad task
         if not random_ad_task.is_running():
             random_ad_task.start()
             print("Random Ad Task Started.")
@@ -221,6 +220,51 @@ async def ask(interaction: discord.Interaction, question: str):
 
     except Exception as e:
         await interaction.followup.send(f"Error: {str(e)}")
+
+# =====================================
+# /IMAGINE (IMAGE GENERATION)
+# =====================================
+@bot.tree.command(name="imagine", description="Generate an image using AI")
+@app_commands.describe(prompt="What do you want Chotu Chaiwala to draw?")
+async def imagine(interaction: discord.Interaction, prompt: str):
+    # Check if the second API key is set
+    if not image_client:
+        await interaction.response.send_message(
+            "Image generation is currently offline. Missing second API key.", 
+            ephemeral=True
+        )
+        return
+
+    # Defer because image generation takes a few seconds
+    await interaction.response.defer()
+
+    try:
+        # Use Google's Imagen model
+        response = image_client.models.generate_images(
+            model='imagen-3.0-generate-001',
+            prompt=prompt,
+            config={
+                "number_of_images": 1,
+                "output_mime_type": "image/png"
+            }
+        )
+        
+        # Extract the image data from the response
+        image_bytes = response.generated_images[0].image.image_bytes
+        
+        # Turn the raw data into a file Discord can read
+        buffer = BytesIO(image_bytes)
+        file = discord.File(buffer, filename="chotu_drawing.png")
+        
+        # Send the image
+        await interaction.followup.send(
+            content=f"🎨 **Drawing for:** `{prompt}`", 
+            file=file
+        )
+
+    except Exception as e:
+        await interaction.followup.send(f"Sorry, I couldn't generate that image. Error: {str(e)}")
+
 
 # =====================================
 # /REMEMBER
