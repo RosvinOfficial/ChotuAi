@@ -1,7 +1,4 @@
-main.py
-
 import os
-import sqlite3
 import qrcode
 import discord
 
@@ -9,6 +6,14 @@ from io import BytesIO
 from discord.ext import commands
 from discord import app_commands
 from google import genai
+
+from database import (
+initialize_database,
+save_message,
+create_advertisement,
+save_memory,
+get_memory
+)
 
 =====================================
 
@@ -31,36 +36,25 @@ raise ValueError("GEMINI_API_KEY is missing")
 
 =====================================
 
+DATABASE INIT
+
+=====================================
+
+initialize_database()
+
+=====================================
+
 GEMINI
 
 =====================================
 
-client = genai.Client(api_key=GEMINI_API_KEY)
-
-=====================================
-
-DATABASE
-
-=====================================
-
-conn = sqlite3.connect("bot.db")
-cursor = conn.cursor()
-
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS advertisements (
-id INTEGER PRIMARY KEY AUTOINCREMENT,
-user_id TEXT,
-username TEXT,
-link TEXT,
-status TEXT
+client = genai.Client(
+api_key=GEMINI_API_KEY
 )
-""")
-
-conn.commit()
 
 =====================================
 
-DISCORD
+DISCORD BOT
 
 =====================================
 
@@ -85,7 +79,10 @@ response = client.models.generate_content(
     contents=prompt
 )
 
-return response.text
+if hasattr(response, "text"):
+    return response.text
+
+return "No response generated."
 
 =====================================
 
@@ -96,13 +93,19 @@ EVENTS
 @bot.event
 async def on_ready():
 
-synced = await bot.tree.sync()
+try:
 
-print("=" * 50)
-print("BOT ONLINE")
-print(bot.user)
-print(f"Slash Commands: {len(synced)}")
-print("=" * 50)
+    synced = await bot.tree.sync()
+
+    print("=" * 50)
+    print("BOT ONLINE")
+    print(f"Logged in as: {bot.user}")
+    print(f"Servers: {len(bot.guilds)}")
+    print(f"Commands Synced: {len(synced)}")
+    print("=" * 50)
+
+except Exception as e:
+    print(e)
 
 =====================================
 
@@ -128,7 +131,10 @@ await interaction.response.send_message(
 
 @bot.tree.command(
 name="ask",
-description="Ask the AI anything"
+description="Ask AI anything"
+)
+@app_commands.describe(
+question="Your question"
 )
 async def ask(
 interaction: discord.Interaction,
@@ -141,6 +147,12 @@ try:
 
     answer = ask_gemini(question)
 
+    save_message(
+        interaction.user.id,
+        str(interaction.user),
+        question
+    )
+
     if len(answer) > 1900:
         answer = answer[:1900]
 
@@ -149,7 +161,65 @@ try:
 except Exception as e:
 
     await interaction.followup.send(
-        f"Error: {e}"
+        f"Error: {str(e)}"
+    )
+
+=====================================
+
+/REMEMBER
+
+=====================================
+
+@bot.tree.command(
+name="remember",
+description="Save a memory"
+)
+async def remember(
+interaction: discord.Interaction,
+key: str,
+value: str
+):
+
+save_memory(
+    interaction.user.id,
+    key,
+    value
+)
+
+await interaction.response.send_message(
+    f"Saved memory: {key}"
+)
+
+=====================================
+
+/MEMORY
+
+=====================================
+
+@bot.tree.command(
+name="memory",
+description="Get a saved memory"
+)
+async def memory(
+interaction: discord.Interaction,
+key: str
+):
+
+value = get_memory(
+    interaction.user.id,
+    key
+)
+
+if value:
+
+    await interaction.response.send_message(
+        f"{key}: {value}"
+    )
+
+else:
+
+    await interaction.response.send_message(
+        "No memory found."
     )
 
 =====================================
@@ -162,31 +232,19 @@ except Exception as e:
 name="advertisement",
 description="Submit a link for advertisement review"
 )
+@app_commands.describe(
+link="Website, Discord server invite, or product link"
+)
 async def advertisement(
 interaction: discord.Interaction,
 link: str
 ):
 
-cursor.execute(
-    """
-    INSERT INTO advertisements
-    (
-        user_id,
-        username,
-        link,
-        status
-    )
-    VALUES (?, ?, ?, ?)
-    """,
-    (
-        str(interaction.user.id),
-        str(interaction.user),
-        link,
-        "pending_payment"
-    )
+ad_id = create_advertisement(
+    interaction.user.id,
+    str(interaction.user),
+    link
 )
-
-conn.commit()
 
 upi_uri = (
     f"upi://pay?"
@@ -211,6 +269,12 @@ file = discord.File(
 embed = discord.Embed(
     title="Advertisement Request",
     color=discord.Color.green()
+)
+
+embed.add_field(
+    name="Advertisement ID",
+    value=str(ad_id),
+    inline=False
 )
 
 embed.add_field(
@@ -278,22 +342,28 @@ if bot.user in message.mentions:
 
             response = ask_gemini(prompt)
 
+            save_message(
+                message.author.id,
+                str(message.author),
+                prompt
+            )
+
             if len(response) > 1900:
                 response = response[:1900]
 
             await message.reply(response)
 
-        except Exception:
+        except Exception as e:
 
             await message.reply(
-                "AI service unavailable."
+                f"AI Error: {str(e)}"
             )
 
 await bot.process_commands(message)
 
 =====================================
 
-START
+START BOT
 
 =====================================
 
