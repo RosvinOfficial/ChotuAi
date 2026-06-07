@@ -42,7 +42,7 @@ UPI_NAME = "Talentroze"
 AD_PRICE = 399
 
 # ⚠️ REPLACE THIS WITH YOUR DISCORD USER ID ⚠️
-DEVELOPER_ID = 123456789012345678
+DEVELOPER_ID = 1451643734956445839
 
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is missing. Make sure it is set in your environment variables.")
