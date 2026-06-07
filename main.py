@@ -20,7 +20,7 @@ from database import (
 )
 
 # =====================================
-# CONFIG & ADVERTISEMENTS
+# CONFIG & CREDENTIALS
 # =====================================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
@@ -38,6 +38,9 @@ VALID_KEYS = [key for key in GEMINI_KEYS if key]
 UPI_ID = "talentroze@upi"
 UPI_NAME = "Talentroze"
 AD_PRICE = 399
+
+# ⚠️ REPLACE THIS WITH YOUR DISCORD USER ID ⚠️
+DEVELOPER_ID = 1491692928718995527 
 
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is missing. Make sure it is set in your environment variables.")
@@ -194,6 +197,61 @@ async def random_ad_task():
             print(f"Ad bhejne mein error aayi: {e}")
 
 # =====================================
+# GLOBAL ANNOUNCEMENT (DEVELOPER ONLY)
+# =====================================
+@bot.tree.command(name="announce", description="[DEV ONLY] Secretly blast an announcement to all servers")
+@app_commands.describe(message="The message to broadcast to everyone")
+async def announce(interaction: discord.Interaction, message: str):
+    # Security Check: Only the bot owner can use this
+    if interaction.user.id != DEVELOPER_ID:
+        await interaction.response.send_message("❌ You do not have permission to use this developer command.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    
+    success_count = 0
+    fail_count = 0
+
+    for guild in bot.guilds:
+        channel = None
+        
+        try:
+            from database import get_announcement_channel
+            channel_id = get_announcement_channel(guild.id)
+            if channel_id:
+                channel = bot.get_channel(int(channel_id))
+        except ImportError:
+            pass
+
+        if not channel:
+            for c in guild.text_channels:
+                if c.name.lower() == "general" and c.permissions_for(guild.me).send_messages:
+                    channel = c
+                    break
+
+        if not channel and guild.system_channel:
+            if guild.system_channel.permissions_for(guild.me).send_messages:
+                channel = guild.system_channel
+            
+        if not channel:
+            for c in guild.text_channels:
+                if c.permissions_for(guild.me).send_messages:
+                    channel = c
+                    break
+
+        if channel:
+            try:
+                await channel.send(f"⚠️ **DEVELOPER ANNOUNCEMENT** ⚠️\n\n{message}")
+                success_count += 1
+            except Exception:
+                fail_count += 1
+                
+        # Wait 1 second between servers to avoid Discord banning the bot for spam
+        await asyncio.sleep(1)
+
+    await interaction.followup.send(f"✅ **Broadcast Complete!**\nSent to: `{success_count}` servers.\nFailed: `{fail_count}` servers.")
+
+# =====================================
 # SERVER MANAGEMENT (GOD MODE - ADMIN ONLY)
 # =====================================
 @bot.tree.command(name="server_setup", description="[ADMIN] Auto-build a beautiful server layout with channels")
@@ -315,7 +373,9 @@ async def imagine(interaction: discord.Interaction, prompt: str):
     try:
         encoded_prompt = urllib.parse.quote(prompt)
         seed = random.randint(1, 100000)
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
+        
+        # Fixed URL (removed the nologo parameter causing the 402 error)
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&width=1024&height=1024"
 
         # Disguise the bot as a normal Windows Chrome Browser
         headers = {
