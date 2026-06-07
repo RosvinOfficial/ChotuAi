@@ -1,5 +1,6 @@
-discord.py==2.6.0
-google-genai==1.22.0
-qrcode[pil]==8.2
-Pillow==11.2.1
-python-dotenv==1.1.0
+discord.py
+google-genai
+qrcode
+pillow
+gradio_client
+aiohttp
