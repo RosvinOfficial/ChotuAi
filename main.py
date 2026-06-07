@@ -1,4 +1,5 @@
 import os
+import time
 import qrcode
 import discord
 import random
@@ -10,7 +11,6 @@ from discord.ext import commands, tasks
 from discord import app_commands
 from google import genai
 
-# Import functions from your database.py file
 from database import (
     initialize_database,
     save_message,
@@ -115,24 +115,33 @@ bot = commands.Bot(
 )
 
 # =====================================
-# AI FUNCTION (AUTO-SWITCHING API)
+# AI FUNCTION (AUTO-SWITCHING & RETRY)
 # =====================================
 def ask_gemini(prompt):
     last_error = None
+    
     for i, client in enumerate(gemini_clients):
-        try:
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt
-            )
-            if hasattr(response, "text"):
-                return response.text
-        except Exception as e:
-            print(f"API Key {i + 1} failed: {e}. Switching to the next key...")
-            last_error = e
-            continue 
+        # Try each key 2 times before giving up on it
+        for attempt in range(2): 
+            try:
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                if hasattr(response, "text"):
+                    return response.text
+            except Exception as e:
+                last_error = str(e)
+                # If Google is overloaded (503), wait 2 seconds and try again
+                if "503" in last_error or "UNAVAILABLE" in last_error:
+                    print(f"Google is busy. Retrying API Key {i + 1} (Attempt {attempt + 1})...")
+                    time.sleep(2) 
+                    continue
+                else:
+                    print(f"API Key {i + 1} failed: {e}. Switching keys...")
+                    break 
 
-    return f"Sorry, all my AI brains are exhausted right now! (Limits reached). Last Error: {str(last_error)}"
+    return f"Sorry, all my AI brains are exhausted right now! (Limits reached). Last Error: {last_error}"
 
 # =====================================
 # RANDOM ADVERTISEMENT TASK
@@ -308,11 +317,16 @@ async def imagine(interaction: discord.Interaction, prompt: str):
         seed = random.randint(1, 100000)
         image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
 
+        # Disguise the bot as a normal Windows Chrome Browser
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+
         # Download the image physically
         async with aiohttp.ClientSession() as session:
-            async with session.get(image_url) as resp:
+            async with session.get(image_url, headers=headers) as resp:
                 if resp.status != 200:
-                    await interaction.followup.send("❌ Error fetching the image from the server.")
+                    await interaction.followup.send(f"❌ Error fetching the image from the server. (Status Code: {resp.status}) \nThe image server might be down right now.")
                     return
                 image_data = await resp.read()
 
