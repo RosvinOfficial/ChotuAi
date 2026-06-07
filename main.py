@@ -374,7 +374,9 @@ async def imagine(interaction: discord.Interaction, prompt: str):
 
     try:
         # Pass the HF_TOKEN here to use your ZeroGPU quota
-        gradio_client = Client("mrfakename/Z-Image-Turbo", hf_token=HF_TOKEN)
+        # ✅ THE FIXED LINE:
+gradio_client = Client("mrfakename/Z-Image-Turbo", token=HF_TOKEN)
+
 
         def generate():
             return gradio_client.predict(
