@@ -23,25 +23,12 @@ from database import (
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
-# Yahan hum saari keys fetch kar rahe hain
 GEMINI_KEYS = [
     os.getenv("GEMINI_API_KEY"),
     os.getenv("GEMINI_API_KEY_2"),
-    os.getenv("GEMINI_API_KEY_3"),
-    os.getenv("GEMINI_API_KEY_4"),
-    os.getenv("GEMINI_API_KEY_5"),
-    os.getenv("GEMINI_API_KEY_6"),
-    os.getenv("GEMINI_API_KEY_7"),
-    os.getenv("GEMINI_API_KEY_8"),
-    os.getenv("GEMINI_API_KEY_9"),
-    os.getenv("GEMINI_API_KEY_10"),
-    os.getenv("GEMINI_API_KEY_11"),
-    os.getenv("GEMINI_API_KEY_12"),
-    os.getenv("GEMINI_API_KEY_13"),
-    os.getenv("GEMINI_API_KEY_14"),
+    os.getenv("GEMINI_API_KEY_3")
 ]
 
-# Un keys ko hata do jo empty hain (agar aapne sirf 2 keys daali hain toh teesri ignore ho jayegi)
 VALID_KEYS = [key for key in GEMINI_KEYS if key]
 
 UPI_ID = "talentroze@upi"
@@ -108,7 +95,6 @@ initialize_database()
 # =====================================
 # GEMINI CLIENTS (API ROTATION SETUP)
 # =====================================
-# Har valid API key ke liye ek alag client banakar list mein save kar lenge
 gemini_clients = [genai.Client(api_key=key) for key in VALID_KEYS]
 
 # =====================================
@@ -116,6 +102,8 @@ gemini_clients = [genai.Client(api_key=key) for key in VALID_KEYS]
 # =====================================
 intents = discord.Intents.default()
 intents.message_content = True
+intents.guilds = True
+intents.members = True
 
 bot = commands.Bot(
     command_prefix="!",
@@ -127,8 +115,6 @@ bot = commands.Bot(
 # =====================================
 def ask_gemini(prompt):
     last_error = None
-    
-    # Ye loop ek ek karke clients (API keys) ko try karega
     for i, client in enumerate(gemini_clients):
         try:
             response = client.models.generate_content(
@@ -136,16 +122,12 @@ def ask_gemini(prompt):
                 contents=prompt
             )
             if hasattr(response, "text"):
-                # Agar prompt ka answer mil gaya, toh sidha answer return kar do
                 return response.text
-                
         except Exception as e:
-            # Agar error aayi (jaise limit cross ho gayi), toh terminal mein batayega aur agli key try karega
             print(f"API Key {i + 1} failed: {e}. Switching to the next key...")
             last_error = e
             continue 
 
-    # Agar saari keys fail ho jayein tab hi ye error message aayega
     return f"Sorry, all my AI brains are exhausted right now! (Limits reached). Last Error: {str(last_error)}"
 
 # =====================================
@@ -199,6 +181,168 @@ async def random_ad_task():
             print(f"Ad bhejne mein error aayi: {e}")
 
 # =====================================
+# SERVER MANAGEMENT (GOD MODE)
+# =====================================
+
+@bot.tree.command(name="server_setup", description="[ADMIN] Auto-build a beautiful server layout with channels")
+@app_commands.default_permissions(administrator=True) # ONLY ADMINS CAN USE
+async def server_setup(interaction: discord.Interaction):
+    await interaction.response.defer()
+    guild = interaction.guild
+
+    try:
+        # Create Info Category
+        info_cat = await guild.create_category("🔰 SERVER INFO")
+        await guild.create_text_channel("📜・rules", category=info_cat)
+        await guild.create_text_channel("📢・announcements", category=info_cat)
+
+        # Create Community Category
+        chat_cat = await guild.create_category("💬 COMMUNITY")
+        await guild.create_text_channel("💬・general", category=chat_cat)
+        await guild.create_text_channel("🤖・bot-commands", category=chat_cat)
+        await guild.create_text_channel("🐸・memes", category=chat_cat)
+
+        # Create Voice Category
+        voice_cat = await guild.create_category("🔊 VOICE CHANNELS")
+        await guild.create_voice_channel("🎧 Lounge", category=voice_cat)
+        await guild.create_voice_channel("🎮 Gaming 1", category=voice_cat)
+
+        await interaction.followup.send("✅ **Server successfully structured!** Beautiful channels have been created.")
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error creating channels: {e}")
+
+@bot.tree.command(name="server_logo", description="[ADMIN] Change the server icon")
+@app_commands.describe(image="Upload the new logo image")
+@app_commands.default_permissions(administrator=True)
+async def server_logo(interaction: discord.Interaction, image: discord.Attachment):
+    await interaction.response.defer()
+    
+    if not image.content_type.startswith("image/"):
+        await interaction.followup.send("❌ Please upload a valid image file!")
+        return
+
+    try:
+        image_bytes = await image.read()
+        await interaction.guild.edit(icon=image_bytes)
+        await interaction.followup.send("✅ **Server logo successfully updated!**")
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error updating logo. Ensure bot has permissions. {e}")
+
+@bot.tree.command(name="server_rename", description="[ADMIN] Change the server name")
+@app_commands.describe(new_name="The new name for the server")
+@app_commands.default_permissions(administrator=True)
+async def server_rename(interaction: discord.Interaction, new_name: str):
+    try:
+        await interaction.guild.edit(name=new_name)
+        await interaction.response.send_message(f"✅ **Server renamed to:** `{new_name}`")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Error renaming server: {e}")
+
+@bot.tree.command(name="clear", description="[MOD] Delete multiple messages at once")
+@app_commands.describe(amount="Number of messages to delete (1-100)")
+@app_commands.default_permissions(manage_messages=True)
+async def clear(interaction: discord.Interaction, amount: int):
+    if amount < 1 or amount > 100:
+        await interaction.response.send_message("❌ You can only delete between 1 and 100 messages at a time.", ephemeral=True)
+        return
+
+    await interaction.response.defer(ephemeral=True)
+    deleted = await interaction.channel.purge(limit=amount)
+    await interaction.followup.send(f"🧹 Successfully deleted **{len(deleted)}** messages.")
+
+@bot.tree.command(name="nuke", description="[ADMIN] Deletes and recreates this channel (Clears ALL history)")
+@app_commands.default_permissions(administrator=True)
+async def nuke(interaction: discord.Interaction):
+    channel = interaction.channel
+    try:
+        new_channel = await channel.clone(reason="Nuke command requested by Admin")
+        await channel.delete()
+        await new_channel.send("💥 **CHANNEL NUKED** 💥\nAll previous history has been permanently destroyed.")
+    except Exception as e:
+        await interaction.response.send_message(f"❌ Could not nuke channel: {e}", ephemeral=True)
+
+# =====================================
+# STANDARD COMMANDS (AI, MEMORY, ADS)
+# =====================================
+# (Ping, Ask, Imagine, Remember, Memory, Advertisement code remains the same)
+
+@bot.tree.command(name="ping", description="Check bot latency")
+async def ping(interaction: discord.Interaction):
+    await interaction.response.send_message(f"Pong! {round(bot.latency * 1000)}ms")
+
+@bot.tree.command(name="ask", description="Ask AI anything")
+@app_commands.describe(question="Your question")
+async def ask(interaction: discord.Interaction, question: str):
+    await interaction.response.defer()
+    try:
+        answer = ask_gemini(question)  
+        save_message(interaction.user.id, str(interaction.user), question)  
+        if len(answer) > 1900:  
+            answer = answer[:1900] + "... [Truncated]"
+        await interaction.followup.send(answer)
+    except Exception as e:
+        await interaction.followup.send(f"Error: {str(e)}")
+
+@bot.tree.command(name="imagine", description="Generate an image using AI for free!")
+@app_commands.describe(prompt="What do you want Chotu Chaiwala to draw?")
+async def imagine(interaction: discord.Interaction, prompt: str):
+    await interaction.response.defer()
+    try:
+        encoded_prompt = urllib.parse.quote(prompt)
+        seed = random.randint(1, 100000)
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
+
+        safe_prompt = prompt if len(prompt) < 230 else prompt[:230] + "..."
+        embed = discord.Embed(title=f"🎨 Drawing for: {safe_prompt}", color=discord.Color.blue())
+        
+        if len(prompt) >= 230:
+            embed.description = f"**Full Prompt:** {prompt}"
+
+        embed.set_image(url=image_url)
+        embed.set_footer(text="Generated by Chotu Chaiwala")
+        await interaction.followup.send(embed=embed)
+    except Exception as e:
+        await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
+
+@bot.tree.command(name="remember", description="Save a memory")
+async def remember(interaction: discord.Interaction, key: str, value: str):
+    save_memory(interaction.user.id, key, value)
+    await interaction.response.send_message(f"Saved memory: {key}")
+
+@bot.tree.command(name="memory", description="Get a saved memory")
+async def memory(interaction: discord.Interaction, key: str):
+    value = get_memory(interaction.user.id, key)
+    if value:
+        await interaction.response.send_message(f"{key}: {value}")
+    else:
+        await interaction.response.send_message("No memory found.")
+
+@bot.tree.command(name="advertisement", description="Submit a link for advertisement review")
+@app_commands.describe(link="Website, Discord server invite, or product link")
+async def advertisement(interaction: discord.Interaction, link: str):
+    ad_id = create_advertisement(interaction.user.id, str(interaction.user), link)
+    upi_uri = f"upi://pay?pa={UPI_ID}&pn={UPI_NAME}&am={AD_PRICE}&cu=INR&tn={link}"
+
+    qr = qrcode.make(upi_uri)
+    buffer = BytesIO()
+    qr.save(buffer, format="PNG")
+    buffer.seek(0)
+    
+    file = discord.File(buffer, filename="payment_qr.png")
+
+    embed = discord.Embed(title="Advertisement Request", color=discord.Color.green())
+    embed.add_field(name="Advertisement ID", value=str(ad_id), inline=False)
+    embed.add_field(name="Submitted Link", value=link, inline=False)
+    embed.add_field(name="Price", value=f"₹{AD_PRICE}", inline=False)
+    embed.add_field(name="UPI ID", value=UPI_ID, inline=False)
+    embed.add_field(name="Payment Note", value=link, inline=False)
+    embed.set_image(url="attachment://payment_qr.png")
+    embed.set_footer(text=f"Pay ₹{AD_PRICE} and your request will be reviewed.")
+
+    await interaction.response.send_message(embed=embed, file=file, ephemeral=True)
+
+
+# =====================================
 # EVENTS
 # =====================================
 @bot.event
@@ -206,7 +350,7 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()  
         print("=" * 50)  
-        print("BOT ONLINE")  
+        print("BOT ONLINE - GOD MODE ENABLED")  
         print(f"Logged in as: {bot.user}")  
         print(f"Servers: {len(bot.guilds)}")  
         print(f"Commands Synced: {len(synced)}")  
@@ -220,175 +364,21 @@ async def on_ready():
     except Exception as e:
         print(f"Failed to sync commands: {e}")
 
-# =====================================
-# /PING
-# =====================================
-@bot.tree.command(name="ping", description="Check bot latency")
-async def ping(interaction: discord.Interaction):
-    await interaction.response.send_message(
-        f"Pong! {round(bot.latency * 1000)}ms"
-    )
-
-# =====================================
-# /ASK
-# =====================================
-@bot.tree.command(name="ask", description="Ask AI anything")
-@app_commands.describe(question="Your question")
-async def ask(interaction: discord.Interaction, question: str):
-    await interaction.response.defer()
-
-    try:
-        answer = ask_gemini(question)  
-        
-        save_message(  
-            interaction.user.id,  
-            str(interaction.user),  
-            question  
-        )  
-        
-        if len(answer) > 1900:  
-            answer = answer[:1900] + "... [Truncated]"
-            
-        await interaction.followup.send(answer)
-
-    except Exception as e:
-        await interaction.followup.send(f"Error: {str(e)}")
-
-# =====================================
-# /IMAGINE (UNLIMITED FREE IMAGE GENERATION)
-# =====================================
-@bot.tree.command(name="imagine", description="Generate an image using AI for free!")
-@app_commands.describe(prompt="What do you want Chotu Chaiwala to draw?")
-async def imagine(interaction: discord.Interaction, prompt: str):
-    await interaction.response.defer()
-
-    try:
-        encoded_prompt = urllib.parse.quote(prompt)
-        seed = random.randint(1, 100000)
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
-
-        safe_prompt = prompt if len(prompt) < 230 else prompt[:230] + "..."
-
-        embed = discord.Embed(
-            title=f"🎨 Drawing for: {safe_prompt}",
-            color=discord.Color.blue()
-        )
-        
-        if len(prompt) >= 230:
-            embed.description = f"**Full Prompt:** {prompt}"
-
-        embed.set_image(url=image_url)
-        embed.set_footer(text="Generated by Chotu Chaiwala")
-
-        await interaction.followup.send(embed=embed)
-
-    except Exception as e:
-        await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
-
-# =====================================
-# /REMEMBER
-# =====================================
-@bot.tree.command(name="remember", description="Save a memory")
-async def remember(interaction: discord.Interaction, key: str, value: str):
-    save_memory(
-        interaction.user.id,
-        key,
-        value
-    )
-    await interaction.response.send_message(f"Saved memory: {key}")
-
-# =====================================
-# /MEMORY
-# =====================================
-@bot.tree.command(name="memory", description="Get a saved memory")
-async def memory(interaction: discord.Interaction, key: str):
-    value = get_memory(
-        interaction.user.id,
-        key
-    )
-    if value:
-        await interaction.response.send_message(f"{key}: {value}")
-    else:
-        await interaction.response.send_message("No memory found.")
-
-# =====================================
-# /ADVERTISEMENT
-# =====================================
-@bot.tree.command(name="advertisement", description="Submit a link for advertisement review")
-@app_commands.describe(link="Website, Discord server invite, or product link")
-async def advertisement(interaction: discord.Interaction, link: str):
-    ad_id = create_advertisement(
-        interaction.user.id,
-        str(interaction.user),
-        link
-    )
-
-    upi_uri = (
-        f"upi://pay?"
-        f"pa={UPI_ID}"
-        f"&pn={UPI_NAME}"
-        f"&am={AD_PRICE}"
-        f"&cu=INR"
-        f"&tn={link}"
-    )
-
-    qr = qrcode.make(upi_uri)
-    buffer = BytesIO()
-    qr.save(buffer, format="PNG")
-    buffer.seek(0)
-    
-    file = discord.File(buffer, filename="payment_qr.png")
-
-    embed = discord.Embed(
-        title="Advertisement Request",
-        color=discord.Color.green()
-    )
-    embed.add_field(name="Advertisement ID", value=str(ad_id), inline=False)
-    embed.add_field(name="Submitted Link", value=link, inline=False)
-    embed.add_field(name="Price", value=f"₹{AD_PRICE}", inline=False)
-    embed.add_field(name="UPI ID", value=UPI_ID, inline=False)
-    embed.add_field(name="Payment Note", value=link, inline=False)
-    embed.set_image(url="attachment://payment_qr.png")
-    embed.set_footer(text=f"Pay ₹{AD_PRICE} and your request will be reviewed.")
-
-    await interaction.response.send_message(
-        embed=embed,
-        file=file,
-        ephemeral=True
-    )
-
-# =====================================
-# MENTION CHAT
-# =====================================
 @bot.event
 async def on_message(message):
     if message.author.bot:
         return
 
     if bot.user in message.mentions:
-        prompt = (  
-            message.content  
-            .replace(f"<@{bot.user.id}>", "")  
-            .replace(f"<@!{bot.user.id}>", "")  
-            .strip()  
-        )  
+        prompt = message.content.replace(f"<@{bot.user.id}>", "").replace(f"<@!{bot.user.id}>", "").strip()  
 
         if prompt:  
             try:  
-                # Now this automatically uses the smart rotating API!
                 response = ask_gemini(prompt)  
-
-                save_message(  
-                    message.author.id,  
-                    str(message.author),  
-                    prompt  
-                )  
-
+                save_message(message.author.id, str(message.author), prompt)  
                 if len(response) > 1900:  
                     response = response[:1900] + "... [Truncated]" 
-
                 await message.reply(response)  
-
             except Exception as e:  
                 await message.reply(f"AI Error: {str(e)}")
 
