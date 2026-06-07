@@ -4,6 +4,8 @@ import qrcode
 import discord
 import random
 import asyncio
+import urllib.parse
+import aiohttp
 from io import BytesIO
 from discord.ext import commands, tasks
 from discord import app_commands
@@ -23,6 +25,7 @@ from database import (
 # =====================================
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+HF_TOKEN = os.getenv("HF_TOKEN")
 
 # API Key Rotation Setup
 GEMINI_KEYS = [
@@ -39,7 +42,7 @@ UPI_NAME = "Talentroze"
 AD_PRICE = 399
 
 # ⚠️ REPLACE THIS WITH YOUR DISCORD USER ID ⚠️
-DEVELOPER_ID = 1451643734956445839 
+DEVELOPER_ID = 1451643734956445839
 
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is missing. Make sure it is set in your environment variables.")
@@ -368,8 +371,10 @@ async def ask(interaction: discord.Interaction, question: str):
 @app_commands.describe(prompt="What do you want Chotu Chaiwala to draw?")
 async def imagine(interaction: discord.Interaction, prompt: str):
     await interaction.response.defer()
+
     try:
-        gradio_client = Client("mrfakename/Z-Image-Turbo")
+        # Pass the HF_TOKEN here to use your ZeroGPU quota
+        gradio_client = Client("mrfakename/Z-Image-Turbo", hf_token=HF_TOKEN)
 
         def generate():
             return gradio_client.predict(
@@ -400,6 +405,12 @@ async def imagine(interaction: discord.Interaction, prompt: str):
 
         await interaction.followup.send(embed=embed, file=file)
 
+    except discord.HTTPException as e:
+        # If Discord blocks it for being explicit (Error 20009)
+        if e.code == 20009:
+            await interaction.followup.send("🚨 **Blocked!** Discord's safety filters deleted this image because it looked explicit or NSFW. Try a safer prompt!")
+        else:
+            await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
     except Exception as e:
         print(f"Image generation error: {e}")
         await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
