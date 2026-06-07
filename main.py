@@ -374,8 +374,8 @@ async def imagine(interaction: discord.Interaction, prompt: str):
         encoded_prompt = urllib.parse.quote(prompt)
         seed = random.randint(1, 100000)
         
-        # Fixed URL (removed the nologo parameter causing the 402 error)
-        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&width=1024&height=1024"
+        # Cleaned URL (Removed Paywall triggers completely)
+        image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}"
 
         # Disguise the bot as a normal Windows Chrome Browser
         headers = {
