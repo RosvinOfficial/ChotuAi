@@ -42,7 +42,7 @@ UPI_NAME = "Talentroze"
 AD_PRICE = 399
 
 # ⚠️ REPLACE THIS WITH YOUR DISCORD USER ID ⚠️
-DEVELOPER_ID = 1451643734956445839
+DEVELOPER_ID = 123456789012345678
 
 if not DISCORD_TOKEN:
     raise ValueError("DISCORD_TOKEN is missing. Make sure it is set in your environment variables.")
@@ -373,10 +373,8 @@ async def imagine(interaction: discord.Interaction, prompt: str):
     await interaction.response.defer()
 
     try:
-        # Pass the HF_TOKEN here to use your ZeroGPU quota
-        # ✅ THE FIXED LINE:
-gradio_client = Client("mrfakename/Z-Image-Turbo", token=HF_TOKEN)
-
+        # ✅ FIXED: Changed 'hf_token' to 'token'
+        gradio_client = Client("mrfakename/Z-Image-Turbo", token=HF_TOKEN)
 
         def generate():
             return gradio_client.predict(
