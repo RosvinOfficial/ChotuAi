@@ -4,11 +4,13 @@ import discord
 import random
 import asyncio
 import urllib.parse
+import aiohttp
 from io import BytesIO
 from discord.ext import commands, tasks
 from discord import app_commands
 from google import genai
 
+# Import functions from your database.py file
 from database import (
     initialize_database,
     save_message,
@@ -23,12 +25,14 @@ from database import (
 
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 
+# API Key Rotation Setup
 GEMINI_KEYS = [
     os.getenv("GEMINI_API_KEY"),
     os.getenv("GEMINI_API_KEY_2"),
     os.getenv("GEMINI_API_KEY_3")
 ]
 
+# Keep only the keys that are actually filled in your .env
 VALID_KEYS = [key for key in GEMINI_KEYS if key]
 
 UPI_ID = "talentroze@upi"
@@ -181,28 +185,24 @@ async def random_ad_task():
             print(f"Ad bhejne mein error aayi: {e}")
 
 # =====================================
-# SERVER MANAGEMENT (GOD MODE)
+# SERVER MANAGEMENT (GOD MODE - ADMIN ONLY)
 # =====================================
-
 @bot.tree.command(name="server_setup", description="[ADMIN] Auto-build a beautiful server layout with channels")
-@app_commands.default_permissions(administrator=True) # ONLY ADMINS CAN USE
+@app_commands.default_permissions(administrator=True)
 async def server_setup(interaction: discord.Interaction):
     await interaction.response.defer()
     guild = interaction.guild
 
     try:
-        # Create Info Category
         info_cat = await guild.create_category("🔰 SERVER INFO")
         await guild.create_text_channel("📜・rules", category=info_cat)
         await guild.create_text_channel("📢・announcements", category=info_cat)
 
-        # Create Community Category
         chat_cat = await guild.create_category("💬 COMMUNITY")
         await guild.create_text_channel("💬・general", category=chat_cat)
         await guild.create_text_channel("🤖・bot-commands", category=chat_cat)
         await guild.create_text_channel("🐸・memes", category=chat_cat)
 
-        # Create Voice Category
         voice_cat = await guild.create_category("🔊 VOICE CHANNELS")
         await guild.create_voice_channel("🎧 Lounge", category=voice_cat)
         await guild.create_voice_channel("🎮 Gaming 1", category=voice_cat)
@@ -211,16 +211,35 @@ async def server_setup(interaction: discord.Interaction):
     except Exception as e:
         await interaction.followup.send(f"❌ Error creating channels: {e}")
 
+@bot.tree.command(name="create_channel", description="[ADMIN] Tell the bot to build a new channel")
+@app_commands.describe(
+    name="Name of the channel (e.g., chotu-ka-adda)",
+    channel_type="Type 'text' or 'voice' (Defaults to text)"
+)
+@app_commands.default_permissions(administrator=True)
+async def create_channel(interaction: discord.Interaction, name: str, channel_type: str = "text"):
+    await interaction.response.defer()
+    guild = interaction.guild
+    try:
+        if channel_type.lower() == "voice":
+            await guild.create_voice_channel(name)
+            icon = "🔊"
+        else:
+            await guild.create_text_channel(name)
+            icon = "💬"
+            
+        await interaction.followup.send(f"✅ **Done!** I have built the {icon} `{name}` channel for you.")
+    except Exception as e:
+        await interaction.followup.send(f"❌ Error creating channel: {e}")
+
 @bot.tree.command(name="server_logo", description="[ADMIN] Change the server icon")
 @app_commands.describe(image="Upload the new logo image")
 @app_commands.default_permissions(administrator=True)
 async def server_logo(interaction: discord.Interaction, image: discord.Attachment):
     await interaction.response.defer()
-    
     if not image.content_type.startswith("image/"):
         await interaction.followup.send("❌ Please upload a valid image file!")
         return
-
     try:
         image_bytes = await image.read()
         await interaction.guild.edit(icon=image_bytes)
@@ -245,7 +264,6 @@ async def clear(interaction: discord.Interaction, amount: int):
     if amount < 1 or amount > 100:
         await interaction.response.send_message("❌ You can only delete between 1 and 100 messages at a time.", ephemeral=True)
         return
-
     await interaction.response.defer(ephemeral=True)
     deleted = await interaction.channel.purge(limit=amount)
     await interaction.followup.send(f"🧹 Successfully deleted **{len(deleted)}** messages.")
@@ -264,8 +282,6 @@ async def nuke(interaction: discord.Interaction):
 # =====================================
 # STANDARD COMMANDS (AI, MEMORY, ADS)
 # =====================================
-# (Ping, Ask, Imagine, Remember, Memory, Advertisement code remains the same)
-
 @bot.tree.command(name="ping", description="Check bot latency")
 async def ping(interaction: discord.Interaction):
     await interaction.response.send_message(f"Pong! {round(bot.latency * 1000)}ms")
@@ -292,15 +308,27 @@ async def imagine(interaction: discord.Interaction, prompt: str):
         seed = random.randint(1, 100000)
         image_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?seed={seed}&nologo=true&width=1024&height=1024"
 
+        # Download the image physically
+        async with aiohttp.ClientSession() as session:
+            async with session.get(image_url) as resp:
+                if resp.status != 200:
+                    await interaction.followup.send("❌ Error fetching the image from the server.")
+                    return
+                image_data = await resp.read()
+
+        buffer = BytesIO(image_data)
+        file = discord.File(buffer, filename="chotu_art.jpg")
+
         safe_prompt = prompt if len(prompt) < 230 else prompt[:230] + "..."
         embed = discord.Embed(title=f"🎨 Drawing for: {safe_prompt}", color=discord.Color.blue())
         
         if len(prompt) >= 230:
             embed.description = f"**Full Prompt:** {prompt}"
 
-        embed.set_image(url=image_url)
+        embed.set_image(url="attachment://chotu_art.jpg")
         embed.set_footer(text="Generated by Chotu Chaiwala")
-        await interaction.followup.send(embed=embed)
+
+        await interaction.followup.send(embed=embed, file=file)
     except Exception as e:
         await interaction.followup.send(f"Sorry, my drawing tablet broke! Error: {str(e)}")
 
@@ -350,7 +378,7 @@ async def on_ready():
     try:
         synced = await bot.tree.sync()  
         print("=" * 50)  
-        print("BOT ONLINE - GOD MODE ENABLED")  
+        print("BOT ONLINE - CHOTU CHAIWALA IS READY")  
         print(f"Logged in as: {bot.user}")  
         print(f"Servers: {len(bot.guilds)}")  
         print(f"Commands Synced: {len(synced)}")  
