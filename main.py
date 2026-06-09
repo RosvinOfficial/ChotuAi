@@ -31,7 +31,25 @@ HF_TOKEN = os.getenv("HF_TOKEN")
 GEMINI_KEYS = [
     os.getenv("GEMINI_API_KEY"),
     os.getenv("GEMINI_API_KEY_2"),
-    os.getenv("GEMINI_API_KEY_3")
+    os.getenv("GEMINI_API_KEY_3"),
+    os.getenv("GEMINI_API_KEY_4"),
+    os.getenv("GEMINI_API_KEY_5"),
+    os.getenv("GEMINI_API_KEY_6"),
+    os.getenv("GEMINI_API_KEY_7"),
+    os.getenv("GEMINI_API_KEY_8"),
+    os.getenv("GEMINI_API_KEY_9"),
+    os.getenv("GEMINI_API_KEY_10"),
+    os.getenv("GEMINI_API_KEY_11"),
+    os.getenv("GEMINI_API_KEY_12"),
+    os.getenv("GEMINI_API_KEY_13"),
+    os.getenv("GEMINI_API_KEY_14"),
+    os.getenv("GEMINI_API_KEY_15"),
+    os.getenv("GEMINI_API_KEY_16"),
+    os.getenv("GEMINI_API_KEY_17"),
+    os.getenv("GEMINI_API_KEY_18"),
+    os.getenv("GEMINI_API_KEY_19"),
+    os.getenv("GEMINI_API_KEY_20"),
+    
 ]
 
 # Keep only the keys that are actually filled in your .env
