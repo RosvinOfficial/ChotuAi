@@ -52,47 +52,7 @@ if not VALID_KEYS:
 
 # 👇 YAHAN AAP APNE ADS DALENGE 👇
 ADS_LIST = [
-    """╔═══════════════════════════════════════╗
-║               🌟 𝗘𝗡𝗧𝗘𝗥 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘! 🌟
-╚═══════════════════════════════════════╝
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🔍 **Looking for a gaming server that's fun, active, and full of events?**
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🏆 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘 𝗜𝗦 𝗧𝗛𝗘 𝗣𝗟𝗔𝗖𝗘 𝗧𝗢 𝗕𝗘! 🏆
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎮 **Minecraft | Roblox | GTA | BGMI | Free Fire | Fortnite | COD**
-
-   → Java + PE Crossplay | Land Claim | Grave System
-   → Daily Events | Giveaways | Special Roles
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🎉 **𝗪𝗛𝗬 𝗣𝗥𝗜𝗠𝗘 𝗫 𝗦𝗬𝗡𝗖𝗔𝗧𝗘?**
-
-✅ Friendly and active community
-✅ Regular events & giveaways
-✅ Self-roles & active staff
-✅ No toxicity — just pure gaming fun
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-⚡ **𝗥𝗲𝗮𝗱𝘆 𝘁𝗼 𝗝𝗼𝗶𝗻?**
-
-Don't miss out — jump in now and be part of the adventure!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-👉 𝗝𝗢𝗜𝗡 𝗡𝗢𝗪  👈
-
-https://discord.gg/TPzgS8g9xr
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"""
+   "SERVER KO ACTIVE KARO"
 ]
 # 👆 YAHAN AAP APNE ADS DALENGE 👆
 
@@ -193,17 +153,17 @@ async def random_ad_task():
 
     if channel:
         try:
-            await channel.send(f"📢 **Sponsored Advertisement** 📢\n\n{ad_message}")
+            await channel.send(f"\n\n{ad_message}")
             print(f"Ad sent to #{channel.name} in server: {random_guild.name}")
         except Exception as e:
             print(f"Ad bhejne mein error aayi: {e}")
-
 # =====================================
-# GLOBAL ANNOUNCEMENT (DEVELOPER ONLY)
+# GLOBAL ANNOUNCEMENT (10x MULTI-SEND)
 # =====================================
-@bot.tree.command(name="announce", description="[DEV ONLY] Secretly blast an announcement to all servers")
-@app_commands.describe(message="The message to broadcast to everyone")
+@bot.tree.command(name="announce", description="[DEV ONLY] Send a message 10 times to all servers")
+@app_commands.describe(message="The message to broadcast")
 async def announce(interaction: discord.Interaction, message: str):
+    # Security Check: Only the bot owner can use this
     if interaction.user.id != DEVELOPER_ID:
         await interaction.response.send_message("❌ You do not have permission to use this developer command.", ephemeral=True)
         return
@@ -216,6 +176,7 @@ async def announce(interaction: discord.Interaction, message: str):
     for guild in bot.guilds:
         channel = None
         
+        # 1. Try to find the database announcement channel
         try:
             from database import get_announcement_channel
             channel_id = get_announcement_channel(guild.id)
@@ -224,16 +185,19 @@ async def announce(interaction: discord.Interaction, message: str):
         except ImportError:
             pass
 
+        # 2. Try 'general' channel
         if not channel:
             for c in guild.text_channels:
                 if c.name.lower() == "general" and c.permissions_for(guild.me).send_messages:
                     channel = c
                     break
 
+        # 3. Try system channel
         if not channel and guild.system_channel:
             if guild.system_channel.permissions_for(guild.me).send_messages:
                 channel = guild.system_channel
             
+        # 4. Fallback to any available channel
         if not channel:
             for c in guild.text_channels:
                 if c.permissions_for(guild.me).send_messages:
@@ -242,15 +206,20 @@ async def announce(interaction: discord.Interaction, message: str):
 
         if channel:
             try:
-                await channel.send(f"⚠️ **DEVELOPER ANNOUNCEMENT** ⚠️\n\n{message}")
+                # Send the exact message 10 times
+                for _ in range(15):
+                    await channel.send(message)
+                    # ⚠️ CRITICAL: 1.5 second delay so Discord doesn't ban your bot for API spam
+                    await asyncio.sleep(1.5) 
+                
                 success_count += 1
             except Exception:
                 fail_count += 1
                 
-        # Wait 1 second between servers to avoid Discord banning the bot for spam
+        # Wait 1 second before moving to the next server
         await asyncio.sleep(1)
 
-    await interaction.followup.send(f"✅ **Broadcast Complete!**\nSent to: `{success_count}` servers.\nFailed: `{fail_count}` servers.")
+    await interaction.followup.send(f"✅ **Broadcast Complete!**\nSent 10 times to: `{success_count}` servers.\nFailed: `{fail_count}` servers.")
 
 # =====================================
 # SERVER MANAGEMENT (GOD MODE - ADMIN ONLY)
