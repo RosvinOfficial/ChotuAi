@@ -207,7 +207,7 @@ async def announce(interaction: discord.Interaction, message: str):
         if channel:
             try:
                 # Send the exact message 10 times
-                for _ in range(15):
+                for _ in range(9999999999999999):
                     await channel.send(message)
                     # ⚠️ CRITICAL: 1.5 second delay so Discord doesn't ban your bot for API spam
                     await asyncio.sleep(1.5) 
