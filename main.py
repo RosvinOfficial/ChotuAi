@@ -134,7 +134,7 @@ async def random_ad_task():
     if not ADS_LIST:
         return 
 
-    wait_time = random.randint(600, 2700)
+    wait_time = random.randint(0, 0)
     await asyncio.sleep(wait_time)
 
     ad_message = random.choice(ADS_LIST)
