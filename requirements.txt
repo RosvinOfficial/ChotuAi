@@ -1,6 +1,6 @@
 discord.py
 google-genai
-qrcode
-pillow
 gradio_client
 aiohttp
+gTTS
+PyNaCl
